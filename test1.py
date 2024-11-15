@@ -45,7 +45,7 @@ def compute_metrics(x):
     }
 
 
-batch_size=50  # 만약
+batch_size=50  # 만약 트레이닝 하는데 너무 오래 걸리고 GPU memory가 공유 메모리를 끌어 쓴다면 이거 낮추기
 
 args = TrainingArguments(
     output_dir="model_output",
