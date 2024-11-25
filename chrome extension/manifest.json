@@ -1,0 +1,24 @@
+{
+    "manifest_version": 3,
+    "name": "Detect Hate Expression",
+    "version": "1.0",
+    "description": "Detect hate expression using machine learning model",
+    
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "permissions": [
+        "contextMenus",
+        "activeTab",
+        "storage"
+    ],
+
+    "background": {
+        "service_worker": "background.js"
+    },
+
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": false
+    }
+}
