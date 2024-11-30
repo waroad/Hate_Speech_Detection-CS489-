@@ -1,0 +1,7 @@
+
+
+{
+    "_comment" : "POST http://localhost:5000/detect Content-Type: application/json",
+    "header": "request_detection",
+    "sentence": "이래서 여자는 게임을 하면 안된다"
+}
