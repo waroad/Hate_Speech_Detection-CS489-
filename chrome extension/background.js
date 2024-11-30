@@ -11,9 +11,31 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "analyzeText" && info.selectionText) {
         const selectedText = info.selectionText;
-        console.log("Selected text:", selectedText);
-        
-        // 여기에 선택한 텍스트를 머신에 넣고, 결과값을 반환하는 로직.
-        // 배포서버? openai api?
+
+        // 서버에 텍스트를 전달하고 결과를 content.js에 보내기
+        fetch('https://api.example.com/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ text: selectedText }),
+        })
+            .then((response) => response.json())
+            .then((result) => {
+                const resultText = `Hate expression detected=${result.hateExpression}, Hate kind=${result.hateTypes}, Alternative=${result.alternative}`;
+                // 결과를 content.js에 전달
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'showResult',
+                    resultText: resultText,
+                });
+            })
+            .catch((error) => {
+                const errorMessage = "Error: Could not connect to the server.";
+                // 에러 메시지를 content.js에 전달
+                chrome.tabs.sendMessage(tab.id, {
+                    action: 'showResult',
+                    resultText: errorMessage,
+                });
+            });
     }
 });
