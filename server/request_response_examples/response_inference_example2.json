@@ -1,11 +1,12 @@
 {
-    "header": "response_detection",
+    "header": "respond_inference",
     "sentence": "이래서 여자는 게임을 하면 안된다",
-    "여성/가족": 1,
+    "여성/가족": 0,
     "남성": 0,
     "성소수자": 0,
     "인종/국적": 0,
     "연령": 0,
     "지역": 0,
-    "종교": 0
+    "종교": 0,
+    "num_localization": 0
 }

@@ -7,7 +7,7 @@ import google.generativeai as genai
 app = Flask(__name__)
 
 # Enable CORS for all routes
-CORS(app)  
+CORS(app)
 
 # Configure Gemini API
 genai.configure(api_key="your_api_key")  # Replace with your Gemini API key
@@ -19,7 +19,7 @@ tokenizer = AutoTokenizer.from_pretrained("beomi/KcELECTRA-base")
 pipeline = TextClassificationPipeline(
     model=detection_model,
     tokenizer=tokenizer,
-    device = 0,
+    device=0,  # Use GPU if available
     return_all_scores=True,
     function_to_apply='sigmoid'
 )
@@ -29,16 +29,8 @@ PROMPT_TEMPLATE_PATH = './prompt_template.txt'
 with open(PROMPT_TEMPLATE_PATH, 'r', encoding='utf-8') as file:
     prompt_template = file.read()
 
-
 # Function to query Gemini
 def query_gemini(prompt):
-    """
-    Queries the Gemini model with the given prompt.
-    Args:
-        prompt (str): The input prompt to send to the model.
-    Returns:
-        str: The response text from the model.
-    """
     try:
         model_instance = genai.GenerativeModel(gemini_model)
         response = model_instance.generate_content(prompt)
@@ -47,23 +39,11 @@ def query_gemini(prompt):
         print(f"Error querying Gemini: {e}")
         return None
 
-
 # Function to parse Gemini's response
 def parse_gemini_response(response):
-    """
-    Parses the Gemini response to extract hate speech localization results.
-    Args:
-        response (str): The response text from Gemini.
-    Returns:
-        list: A list of tuples (part, category), where:
-              - part (str): The detected text segment.
-              - category (str): The associated hate speech category.
-    """
     localization_results = []
-
     if "혐오표현은 없습니다." in response:
-        return localization_results  # Return an empty list if no hate speech is detected
-
+        return localization_results  # No hate speech detected
     lines = response.split('\n')
     for line in lines:
         if ':' in line:
@@ -71,67 +51,56 @@ def parse_gemini_response(response):
             localization_results.append((part.strip(), category.strip()))
     return localization_results
 
-
-# Role 1: Hate expression detection
-@app.route('/detect', methods=['POST'])
-def detect_hate_expression():
+# Unified role: Hate expression detection and localization
+@app.route('/inference', methods=['POST'])
+def hate_expression_inference():
     try:
         data = request.get_json()
-        if data['header'] != 'request_detection':
-            return jsonify({"error": "Invalid header for detection"}), 400
+        if data['header'] != 'request_inference':
+            return jsonify({"error": "Invalid header for inference"}), 400
 
         sentence = data['sentence']
-        detection_results = pipeline(sentence)[0]
-        response = {"header": "response_detection", "sentence": sentence}
 
+        # Step 1: Hate expression detection using PLM
+        detection_results = pipeline(sentence)[0]
+        detection_summary = {}
         for result in detection_results:
             label = result['label']
             score = result['score']
-            response[label] = 1 if score >= 0.5 else 0  # Binary classification
+            detection_summary[label] = 1 if score >= 0.5 else 0  # Binary classification
 
-        return jsonify(response)
+        # Step 2: Create input prompt for Gemini
+        formatted_detection = ", ".join(
+            [f"{label}: {'있음' if detection_summary[label] == 1 else '없음'}" for label in detection_summary]
+        )
+        prompt = prompt_template.replace("[sentence]", sentence).replace("[detection]", formatted_detection)
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# Role 2: Hate expression localization
-@app.route('/localize', methods=['POST'])
-def localize_hate_expression():
-    try:
-        data = request.get_json()
-        if data['header'] != 'request_localization':
-            return jsonify({"error": "Invalid header for localization"}), 400
-
-        sentence = data['sentence']
-        detection_results = {label: data[label] for label in data if label not in {'header', 'sentence'}}
-
-        # Create input prompt
-        detection_summary = ", ".join([f"{label}: {'있음' if value == 1 else '없음'}" for label, value in detection_results.items()])
-        prompt = prompt_template.replace("[sentence]", sentence).replace("[detection]", detection_summary)
-
-        # Query Gemini model
+        # Step 3: Query Gemini model for localization
         gemini_response = query_gemini(prompt)
         if not gemini_response:
             return jsonify({"error": "Failed to query Gemini model"}), 500
 
-        # Parse Gemini response to extract localization results
+        # Step 4: Parse localization results
         localization_results = parse_gemini_response(gemini_response)
 
-        # Format localization results with string indices
-        result_json = {"header": "respond_localization", 
-                       "sentence": sentence, 
-                       "num_localization": len(localization_results)}
+        # Step 5: Format localization results with string indices
+        result_json = {
+            "header": "respond_inference",
+            "sentence": sentence,
+            "num_localization": len(localization_results),
+        }
         for idx, (part, category) in enumerate(localization_results):
             start_idx = sentence.find(part)
             end_idx = start_idx + len(part) if start_idx != -1 else -1
             result_json[idx] = (category, (start_idx, end_idx))
 
+        # Add detection results to response
+        result_json.update(detection_summary)
+
         return jsonify(result_json)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # Run the server
 if __name__ == '__main__':
