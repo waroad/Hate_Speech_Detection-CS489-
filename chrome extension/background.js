@@ -22,7 +22,24 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         })
             .then((response) => response.json())
             .then((result) => {
-                const resultText = `Hate expression detected=${result.hateExpression}, Hate kind=${result.hateTypes}, Alternative=${result.alternative}`;
+                console.log("server response:", result) //디버깅용
+                
+                // Localization 데이터를 순회하여 중복 제거
+                const localizationResults = Array.from(
+                    new Map(
+                        result.localization_list.map(([category, startIdx, endIdx]) => [
+                            `${startIdx}-${endIdx}`,
+                            `${result.sentence.slice(startIdx, endIdx)} : '${category}'`,
+                        ])
+                    ).values()
+                )
+                .map((entry) => `${entry}<br>`) // 줄바꿈 적용
+                .join("\n");
+
+                const resultText = localizationResults.length > 0
+                    ? localizationResults
+                    : "No hate expressions detected.";
+
                 // 결과를 content.js에 전달
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'showResult',

@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure Gemini API
-genai.configure(api_key="")  # Replace with your Gemini API key
+genai.configure(api_key="AIzaSyAK30nCONzlj-ozSB19Y2BcZBBFtDJikDQ")  # Replace with your Gemini API key
 gemini_model = "gemini-1.5-flash"  # Specify the Gemini model
 
 # Load pre-trained model and tokenizer for hate speech detection
@@ -54,7 +54,7 @@ def parse_gemini_response(response):
 # Unified role: Hate expression detection and localization
 @app.route('/inference', methods=['POST'])
 def hate_expression_inference():
-    data = request.get_json()
+    data = request.get_json(force=True)
     sentence = data['sentence']
 
     # Step 1: Hate expression detection using PLM
