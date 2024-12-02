@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure Gemini API
-genai.configure(api_key="your_api_key")  # Replace with your Gemini API key
+genai.configure(api_key="")  # Replace with your Gemini API key
 gemini_model = "gemini-1.5-flash"  # Specify the Gemini model
 
 # Load pre-trained model and tokenizer for hate speech detection
@@ -48,59 +48,60 @@ def parse_gemini_response(response):
     for line in lines:
         if ':' in line:
             part, category = line.split(':', 1)
-            localization_results.append((part.strip(), category.strip()))
+            localization_results.append((part.strip('[]').strip(), category.strip('[]').strip()))
     return localization_results
 
 # Unified role: Hate expression detection and localization
 @app.route('/inference', methods=['POST'])
 def hate_expression_inference():
-    try:
-        data = request.get_json()
-        if data['header'] != 'request_inference':
-            return jsonify({"error": "Invalid header for inference"}), 400
+    data = request.get_json()
+    sentence = data['sentence']
 
-        sentence = data['sentence']
+    # Step 1: Hate expression detection using PLM
+    detection_results = pipeline(sentence)[0]
+    detection_summary = {}
+    for result in detection_results:
+        label = result['label']
+        score = result['score']
+        detection_summary[label] = 1 if score >= 0.5 else 0  # Binary classification
 
-        # Step 1: Hate expression detection using PLM
-        detection_results = pipeline(sentence)[0]
-        detection_summary = {}
-        for result in detection_results:
-            label = result['label']
-            score = result['score']
-            detection_summary[label] = 1 if score >= 0.5 else 0  # Binary classification
+    # Step 2: Create input prompt for Gemini
+    formatted_detection = ", ".join(
+        [f"{label}: {'있음' if detection_summary[label] == 1 else '없음'}" for label in detection_summary]
+    )
+    prompt = prompt_template.replace("[sentence]", sentence).replace("[detection]", formatted_detection)
 
-        # Step 2: Create input prompt for Gemini
-        formatted_detection = ", ".join(
-            [f"{label}: {'있음' if detection_summary[label] == 1 else '없음'}" for label in detection_summary]
-        )
-        prompt = prompt_template.replace("[sentence]", sentence).replace("[detection]", formatted_detection)
+    # Step 3: Query Gemini model for localization
+    gemini_response = query_gemini(prompt)
+    if not gemini_response:
+        return jsonify({"error": "Failed to query Gemini model"}), 500
 
-        # Step 3: Query Gemini model for localization
-        gemini_response = query_gemini(prompt)
-        if not gemini_response:
-            return jsonify({"error": "Failed to query Gemini model"}), 500
+    # Step 4: Parse localization results
+    localization_results = parse_gemini_response(gemini_response)
 
-        # Step 4: Parse localization results
-        localization_results = parse_gemini_response(gemini_response)
+    # Step 5: Format localization results with string indices
+    result_json = {
+        "sentence": sentence
+    }
+    localization_list = []
+    for part, category in localization_results:
+        localization_point = []
+        start_idx = sentence.find(part)
+        end_idx = start_idx + len(part) if start_idx != -1 else -1
+        localization_point.append(category)
+        localization_point.append(start_idx)
+        localization_point.append(end_idx)
+        localization_list.append(localization_point)
+        print(sentence[start_idx:end_idx])
+    result_json['localization_list'] = localization_list
 
-        # Step 5: Format localization results with string indices
-        result_json = {
-            "header": "respond_inference",
-            "sentence": sentence,
-            "num_localization": len(localization_results),
-        }
-        for idx, (part, category) in enumerate(localization_results):
-            start_idx = sentence.find(part)
-            end_idx = start_idx + len(part) if start_idx != -1 else -1
-            result_json[idx] = (category, (start_idx, end_idx))
+    # Add detection results to response
+    #result_json.update(detection_summary)
 
-        # Add detection results to response
-        result_json.update(detection_summary)
+    #print(jsonify(result_json))
+    print(result_json)
+    return jsonify(result_json)
 
-        return jsonify(result_json)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 # Run the server
 if __name__ == '__main__':

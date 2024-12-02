@@ -13,12 +13,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         const selectedText = info.selectionText;
 
         // 서버에 텍스트를 전달하고 결과를 content.js에 보내기
-        fetch('https://api.example.com/analyze', {
+        fetch('http://localhost:5000/inference', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: selectedText }),
+            body: JSON.stringify({ sentence: selectedText }),
         })
             .then((response) => response.json())
             .then((result) => {
