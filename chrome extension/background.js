@@ -11,7 +11,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "analyzeText" && info.selectionText) {
         const selectedText = info.selectionText;
-
+        
         // 서버에 텍스트를 전달하고 결과를 content.js에 보내기
         fetch('http://localhost:5000/inference', {
             method: 'POST',
@@ -24,7 +24,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             .then((result) => {
                 console.log("server response:", result) //디버깅용
                 
-                // Localization 데이터를 순회하여 중복 제거
+                // Localization 데이터를 하이라이트 용도로 변환
+                const highlightData = result.localization_list.map(([category, startIdx, endIdx]) => ({
+                    category,
+                    startIdx,
+                    endIdx
+                }));
+
+                // 박스 출력용 데이터 처리
                 const localizationResults = Array.from(
                     new Map(
                         result.localization_list.map(([category, startIdx, endIdx]) => [
@@ -43,7 +50,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                 // 결과를 content.js에 전달
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'showResult',
-                    resultText: resultText,
+                    resultText: resultText, //박스 출력용
+                    highlightData: highlightData //하이라이트 용도
                 });
             })
             .catch((error) => {
