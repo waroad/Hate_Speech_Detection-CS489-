@@ -35,7 +35,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             resultBox.style.zIndex = "1000";
             resultBox.style.fontFamily = "Arial, sans-serif";
             resultBox.style.maxWidth = "300px";
-
+            // 자동하이라이트 제거
+            window.getSelection().removeAllRanges();
             // -1, -1 인덱스 체크
             const hasGlobalHighlight = highlightData.some(({ startIdx, endIdx }) => startIdx === -1 && endIdx === -1);
 
@@ -51,8 +52,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         resultBox.remove();
                         console.log("Result box removed."); // 디버깅 결과 박스 제거
                     }
-                } else if (clickCounter === 2) {
-                    // 두 번째 클릭: 하이라이트 제거
+
                     if (!hasGlobalHighlight) {
                         const highlightedElements = document.querySelectorAll(".highlighted");
                         highlightedElements.forEach((span) => {
@@ -67,6 +67,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         console.log("Highlights removed."); // 디버깅 하이라이트 제거 확인
                     }
                     document.body.removeEventListener("click", handleClick); // 이벤트 제거
+                } else if (clickCounter === 2) {
+                    // 두 번째 클릭: 하이라이트 제거
+
                 }
             };
 
@@ -80,42 +83,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return;
             }
 
-            // 하이라이트를 위한 텍스트 처리
-            let highlightedText = "";
-            let currentIndex = 0;
-
             highlightData.forEach(({ category, startIdx, endIdx }) => {
-                console.log(`Processing highlight for: ${selectedText.slice(startIdx, endIdx)}, Category: ${category}`); // 디버깅
 
-                // 하이라이트 전 일반 텍스트 추가
-                if (currentIndex < startIdx) {
-                    highlightedText += selectedText.slice(currentIndex, startIdx);
+                // Create the highlight span element
+                const highlightSpan = document.createElement("span");
+                highlightSpan.className = "highlighted";
+                highlightSpan.style.backgroundColor = "yellow";
+                highlightSpan.style.fontWeight = "bold";
+                highlightSpan.title = category;
+
+                // Clone the range for this specific highlight
+                const highlightRange = document.createRange();
+
+                // Adjust range for highlighting
+                const { startContainer, startOffset } = range;
+                let currentOffset = 0;
+                let targetNode = startContainer;
+
+                // Traverse to the right node for `startIdx`
+                while (targetNode.nodeType !== Node.TEXT_NODE || currentOffset + targetNode.textContent.length <= startIdx) {
+                    currentOffset += targetNode.textContent ? targetNode.textContent.length : 0;
+                    targetNode = targetNode.nextSibling;
                 }
 
-                // 하이라이트된 텍스트 추가
-                const highlightSegment = `<span class="highlighted" style="background-color: yellow; font-weight: bold;" title="${category}">${selectedText.slice(startIdx, endIdx)}</span>`;
-                highlightedText += highlightSegment;
+                // Set start and end points for this highlight
+                highlightRange.setStart(targetNode, startIdx - currentOffset);
+                highlightRange.setEnd(targetNode, endIdx - currentOffset);
 
-                currentIndex = endIdx;
+                // Surround the selected range with the highlight span
+                try {
+                    highlightRange.surroundContents(highlightSpan);
+                } catch (e) {
+                    console.error("Error surrounding contents:", e);
+                }
             });
 
-            // 남은 텍스트 추가
-            if (currentIndex < selectedText.length) {
-                highlightedText += selectedText.slice(currentIndex);
-            }
 
-            console.log("Highlighted text generated:", highlightedText); // 디버깅
 
-            // 기존 텍스트를 하이라이트된 텍스트로 교체
-            range.deleteContents(); // 기존 텍스트 삭제
-            const tempContainer = document.createElement("div");
-            tempContainer.innerHTML = highlightedText;
-            const fragment = document.createDocumentFragment();
-            Array.from(tempContainer.childNodes).forEach((node) => {
-                fragment.appendChild(node);
-            });
-            range.insertNode(fragment);
-
+            // 자동하이라이트 제거
+            window.getSelection().removeAllRanges();
             console.log("Highlighted text applied to selection."); // 디버깅
         } else {
             console.error("No valid text selection found."); // 디버깅

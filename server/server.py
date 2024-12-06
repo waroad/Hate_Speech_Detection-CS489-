@@ -2,7 +2,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, TextClassificationPipeline
 import google.generativeai as genai
+import string
 
+# Define the characters to be removed
+remove_chars = "\"'“”[]{}"
+trans = str.maketrans('', '', remove_chars)
 # Initialize Flask app
 app = Flask(__name__)
 
@@ -48,7 +52,7 @@ def parse_gemini_response(response):
     for line in lines:
         if ':' in line:
             part, category = line.split(':', 1)
-            localization_results.append((part.strip('[]').strip(), category.strip('[]').strip()))
+            localization_results.append([part.strip('[]').strip().translate(trans), category.strip('[]').strip()])
     return localization_results
 
 # Unified role: Hate expression detection and localization
@@ -70,7 +74,7 @@ def hate_expression_inference():
         [f"{label}: {'있음' if detection_summary[label] == 1 else '없음'}" for label in detection_summary]
     )
     prompt = prompt_template.replace("[sentence]", sentence).replace("[detection]", formatted_detection)
-
+    print(prompt)
     # Step 3: Query Gemini model for localization
     gemini_response = query_gemini(prompt)
     if not gemini_response:
@@ -84,6 +88,7 @@ def hate_expression_inference():
         "sentence": sentence
     }
     localization_list = []
+    print(localization_results)
     for part, category in localization_results:
         localization_point = []
         start_idx = sentence.find(part)
@@ -92,7 +97,7 @@ def hate_expression_inference():
         localization_point.append(start_idx)
         localization_point.append(end_idx)
         localization_list.append(localization_point)
-        print(sentence[start_idx:end_idx])
+        print(localization_point, part)
     result_json['localization_list'] = localization_list
 
     # Add detection results to response
