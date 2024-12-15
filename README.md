@@ -63,7 +63,7 @@ To compute evaluation metrics:
 
 ## Configuration
 - **API Key**
-    Set up your Gemini API key in the `options.html` interface. Alternatively, configure it directly in `gemini_answer_generation.py` and `server.py`.
+    Configure it directly in `gemini_answer_generation.py` and `server.py`.
 - **Customization**: 
     ```bash
     Edit the `prompt_template.txt` to modify hate speech definitions or categories.
