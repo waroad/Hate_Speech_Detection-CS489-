@@ -50,8 +50,8 @@ Chrome Extension
 
 ## Command-Line Evaluation
 To compute evaluation metrics:
- ```bash
-   python server.py
+    ```bash
+   python calculate_metric.py
 
 ## Advanced Features
 - **Shuffling Dataset**:
