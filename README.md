@@ -65,5 +65,4 @@ To compute evaluation metrics:
 - **API Key**
     Configure it directly in `gemini_answer_generation.py` and `server.py`.
 - **Customization**: 
-    ```bash
     Edit the `prompt_template.txt` to modify hate speech definitions or categories.
