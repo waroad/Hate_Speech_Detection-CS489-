@@ -38,8 +38,9 @@ Key features include a user-friendly interface, machine learning-powered detecti
    ```bash
    pip install -r requirements.txt
 
-2. Run the server.py in server/:
+2. Run the server:
     ```bash
+   cd server
    python server.py
 
 ## Usage
