@@ -34,31 +34,34 @@ Key features include a user-friendly interface, machine learning-powered detecti
    - Click **Load unpacked** and select the `chrome extension` folder.
 
 ### Server Setup
-1. Install Python 3.7+ and virtual environment tools:
+1. Install Python 3.9 and virtual environment tools:
    ```bash
    pip install -r requirements.txt
 
-2. Run the server:
+2. Run the server.py in server/:
     ```bash
    python server.py
 
 ## Usage
 Chrome Extension
 1. Select text on a web page.
-2. Right-click and choose Analyze this text.
+2. Right-click and choose 'Analyze this text'.
 3. The extension will highlight hate speech in the selected text.
 
 ## Command-Line Evaluation
 To compute evaluation metrics:
     ```bash
+   cd LLM_Experiment/LLM_Classification
    python calculate_metric.py
 
 ## Advanced Features
 - **Shuffling Dataset**:
     ```bash
+    cd LLM_Experiment/LLM_Localization
     python shuffle_jsonl.py
 - **Gemini-based Localization**: 
     ```bash
+    cd LLM_Experiment/LLM_Localization
     python generate_answer.py
 
 ## Configuration
