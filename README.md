@@ -65,6 +65,11 @@ To compute evaluation metrics:
     cd LLM_Experiment/LLM_Localization
     python generate_answer.py
 
+### Example Usage
+![Usage Example](./usage_example.gif)
+
+---
+
 ## Configuration
 - **API Key**
     Configure it directly in `gemini_answer_generation.py` and `server.py`.
