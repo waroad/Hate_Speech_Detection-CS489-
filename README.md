@@ -50,10 +50,10 @@ Chrome Extension
 3. The extension will highlight hate speech in the selected text.
 
 ## Command-Line Evaluation
-To compute evaluation metrics:
+- To compute evaluation metrics:
     ```bash
-   cd LLM_Experiment/LLM_Classification
-   python calculate_metric.py
+    cd LLM_Experiment/LLM_Classification
+    python calculate_metric.py
 
 ## Advanced Features
 - **Shuffling Dataset**:
