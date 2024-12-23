@@ -1,4 +1,6 @@
-torch==2.5.1+cu121
+# Ensure you have manually installed the appropriate CUDA toolkit for your system.
+# For torch==2.5.1+cu121, CUDA 12.1 must be installed manually.
+torch==2.5.1
 transformers==4.45.1
 tqdm==4.66.5
 scikit-learn==1.5.2
